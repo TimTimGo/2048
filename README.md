@@ -1,6 +1,6 @@
-# 2048 - Artificial Intelligence added
+# 2048 - With Artificial Intelligence
 
-Tired of reaching 1024 - but no further? Use your computers brain and join our exclusive club :D
+Tired of reaching 1024 - but no further? Use your computers brain and join our exclusive club :D <br/><br/>
 
 
 <p align="center">
