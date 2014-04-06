@@ -36,7 +36,6 @@ function AI(gameManager){
 /**
  * Starts automatic play
  */
-starts automatic play
 AI.prototype.start = function(){
     if (!this.run){
         this.run = true;
