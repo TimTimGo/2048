@@ -59,7 +59,7 @@ AI.prototype.step = function(){
 
     //adaptive search depth
     var numFreeCells = state.grid.availableCells().length;
-    if (numFreeCells <= 2){
+    if (numFreeCells <= 3){
         maxDepth = 5
     }else if (numFreeCells <= 7){
         maxDepth = maxDHigh;
