@@ -12,14 +12,7 @@
  * of a choice is estimated to be the maximum of all possible tile merges.
  */
 
-// search depth
-var maxDepth = 4;
-// search depth upper bound
-var maxDHigh = 5;
-// search depth lower bound
-var maxDLow = 4;
-
-var toLeft;
+var waitTime = 100;
 
 var actions = [0, 1, 2, 3]
 
@@ -32,8 +25,8 @@ function AI(gameManager){
     gameManager.inputManager.bindButtonPress(".step-ai", this.step.bind(this));
     gameManager.inputManager.bindButtonPress(".start-ai", this.start.bind(this));
     gameManager.inputManager.bindButtonPress(".stop-ai", this.stop.bind(this));
+    gameManager.inputManager.bindButtonPress(".faster-ai", this.faster.bind(this));
 
-    var start = window.performance.now();
     this.makeMoveTables();
     console.log(window.performance.now() - start);
 
@@ -43,6 +36,7 @@ function AI(gameManager){
  * Starts automatic play
  */
 AI.prototype.start = function(){
+    waitTime = 100;
     if (!this.run){
         this.run = true;
         this.move();
@@ -57,13 +51,17 @@ AI.prototype.stop = function(){
     this.run = false;
 }
 
+AI.prototype.faster = function(){
+    waitTime = 0;
+}
+
 /**
  * Plays one move
  */
 AI.prototype.step = function(){
 
     var state = this.encode(this.gameManager.grid);
-
+    var maxDepth;
     //adaptive search depth
     var numFreeCells = this.freeCells(state[0], state[1]);
     if (numFreeCells <= 5){
@@ -86,9 +84,10 @@ AI.prototype.step = function(){
  * Do continuous playing
  */
 AI.prototype.move = function(){
+    var start = window.performance.now();
     this.step();
     if (this.run)
-        setTimeout(this.move.bind(this), 0);
+        setTimeout(this.move.bind(this), Math.max(waitTime, 50 - window.performance.now() + start));
 }
 
 /**
@@ -115,12 +114,13 @@ AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingD
             //    node.merges[option] = -1000;
             var avgMerges = that.getPossibilitiesNode(result.u, result.l, remainingDepth - 1);
             //node.children[option] = possNode;
-            var merges;
+            var merges = result.mergeScore;
             if (avgMerges){
-                merges = avgMerges + result.merges;
+                merges += avgMerges;
             }else{
-                merges = result.merges;
+                merges += 0.3 * that.gridScore(result.u, result.l);
             }
+
             if (merges >= node.maxMerges){
                 node.maxMerges = merges;
                 node.maxOption = option;
@@ -131,7 +131,7 @@ AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingD
 
     if (!optionAvailable){
         //if this move results in ending the game, give a penalty!
-        node.maxMerges = -1000;
+        node.maxMerges = -100000;
     }
 
     return node;
@@ -190,6 +190,7 @@ AI.prototype.makeMoveTables = function(){
     this.toBottomLower = new Uint32Array(65536);
 
     this.merges = new Uint32Array(65536);
+    this.mergeScore = new Uint32Array(65536);
 
     var cell = new Uint32Array(4);
 
@@ -208,6 +209,7 @@ AI.prototype.makeMoveTables = function(){
 
         var reverse = cell[0] << 12 | cell[1] << 8 | cell[2] << 4 | cell[3];
         var merges = 0;
+        var mergeScore = 0;
 
         for (var i = 0; i < 3; i++){
             var j;
@@ -228,12 +230,14 @@ AI.prototype.makeMoveTables = function(){
                 i--;
             }else if(cell[i] == cell[j]){
                 merges++;
+                mergeScore += Math.pow(cell[i], 1.2); //give a bonus for merging high value tiles
                 cell[i] += 1;
                 cell[j] = 0;
             }
         }
 
         this.merges[row] = merges;
+        this.mergeScore[row] = mergeScore;
 
         this.toLeft[row] = (cell[0] | (cell[1] << 4) | (cell[2] << 8) | (cell[3] << 12));
 
@@ -277,7 +281,9 @@ AI.prototype.moveLeft = function(halfGridUpper, halfGridLower){
 
     var res = { u: this.toLeft[row1] | (this.toLeft[row2] << 16),
              l: this.toLeft[row3] | (this.toLeft[row4] << 16),
-             merges: this.merges[row1] + this.merges[row2] + this.merges[row3] + this.merges[row4]};
+             merges: this.merges[row1] + this.merges[row2] + this.merges[row3] + this.merges[row4],
+             mergeScore: this.mergeScore[row1] + this.mergeScore[row2]
+                 + this.mergeScore[row3] + this.mergeScore[row4]};
 
     return res;
 }
@@ -291,7 +297,9 @@ AI.prototype.moveRight = function(halfGridUpper, halfGridLower){
 
     var res= {u: this.toRight[row1] | (this.toRight[row2] << 16),
             l: this.toRight[row3] | (this.toRight[row4] << 16),
-            merges: this.merges[row1] + this.merges[row2] + this.merges[row3] + this.merges[row4]};
+            merges: this.merges[row1] + this.merges[row2] + this.merges[row3] + this.merges[row4],
+            mergeScore: (this.mergeScore[row1] + this.mergeScore[row2]
+                + this.mergeScore[row3] + this.mergeScore[row4]) * 0.9};
 
 
 
@@ -304,6 +312,7 @@ AI.prototype.moveUp = function(halfGridUpper, halfGridLower){
     var newLower = 0;
     var col = 0;
     var merges = 0;
+    var mergeScore = 0;
 
     for (var i = 0; i < 4; i++){
         col = ((halfGridUpper >>> (i * 4)) & 0xf) | ((halfGridUpper >>> (12 + i * 4)) & 0xf0)
@@ -312,16 +321,13 @@ AI.prototype.moveUp = function(halfGridUpper, halfGridLower){
         newUpper |= this.toTopUpper[col] << (i * 4);
         newLower |= this.toTopLower[col] << (i * 4);
         merges += this.merges[col];
+        mergeScore += this.mergeScore[col];
     }
 
-    var res = {u: newUpper,
+    return {u: newUpper,
             l: newLower,
-            merges: merges};
-
-
-
-    return res;
-
+            merges: merges,
+            mergeScore: mergeScore};
 }
 
 AI.prototype.moveDown = function(halfGridUpper, halfGridLower){
@@ -329,6 +335,7 @@ AI.prototype.moveDown = function(halfGridUpper, halfGridLower){
     var newLower = 0;
     var col = 0;
     var merges = 0;
+    var mergeScore = 0;
 
     for (var i = 0; i < 4; i++){
         col = ((halfGridUpper >>> (i * 4)) & 0xf) | ((halfGridUpper >>> (12 + i * 4)) & 0xf0)
@@ -337,11 +344,13 @@ AI.prototype.moveDown = function(halfGridUpper, halfGridLower){
         newUpper |= this.toBottomUpper[col] << (i * 4);
         newLower |= this.toBottomLower[col] << (i * 4);
         merges += this.merges[col];
+        mergeScore += this.mergeScore[col];
     }
 
     var res = {u: newUpper,
             l: newLower,
-            merges: merges};
+            merges: merges,
+            mergeScore: mergeScore * 0.9};
 
     return res;
 
@@ -369,6 +378,81 @@ AI.prototype.freeCells = function(upper, lower){
         mask << 4;
     }
     return count;
+}
+
+/**
+ * Computes a score for the quality of the tile positions in the grid.
+ *
+ * A bonus is given when tiles with value difference of 1 are next to each other.
+ *
+ * @param upper
+ * @param lower
+ * @returns {number}
+ */
+AI.prototype.gridScore = function(upper, lower){
+    var score = 0;
+    var u = upper;
+    var l = lower;
+
+    for (var i = 0; i < 4; i++){
+
+        //first row
+        var uf = u & 0xf;
+        var us = u >>> 4 & 0xf;
+
+        //second row
+        var usf = u >>> 16 & 0xf;
+        var uss = u >>> 20 & 0xf;
+
+        //third row
+        var lf = l & 0xf;
+        var ls = l >>> 4 & 0xf;
+
+        //fourth row
+        var lsf = l >>> 16 & 0xf;
+        var lss = l >>> 20 & 0xf;
+
+        //compare to right neighbor in first row
+        if(uf == us + 1 || uf == us - 1){
+            score++;
+        };
+
+        //compare to right neighbor in second row
+        if (usf == uss + 1 || usf == uss - 1){
+            score++;
+        };
+
+        //compare to right neighbor in third row
+        if (lf == ls + 1 || lf == ls - 1){
+            score++;
+        };
+
+        //compare to right neighbor in fourth row
+        if (lsf == lss + 1 || lsf == lss - 1){
+            score++;
+        };
+
+        //compare to lower neighbor first row
+        if (uf == usf - 1 || uf == usf + 1){
+            score++;
+        };
+
+        //compare to lower neighbor second row
+        if (usf == lf - 1 || usf == lf + 1){
+            score++;
+        };
+
+        //compare to lower neighbor third row
+        if (lf == lsf + 1 || lf == lsf - 1){
+            score++;
+        };
+
+
+        u = u >>> 4;
+        l = l >>> 4;
+    }
+
+    return score;
 }
 
 
