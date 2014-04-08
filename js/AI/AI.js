@@ -67,11 +67,11 @@ AI.prototype.step = function(){
     //adaptive search depth
     var numFreeCells = this.freeCells(state[0], state[1]);
     if (numFreeCells <= 5){
-        maxDepth = 8;
+        maxDepth = 9;
     }else if (numFreeCells <= 6){
-        maxDepth = 7;
+        maxDepth = 8;
     }else if (numFreeCells <= 8){
-        maxDepth = 6;
+        maxDepth = 7;
     }else{
         maxDepth = 4;
     }
@@ -88,7 +88,7 @@ AI.prototype.step = function(){
 AI.prototype.move = function(){
     this.step();
     if (this.run)
-        setTimeout(this.move.bind(this), 10);
+        setTimeout(this.move.bind(this), 0);
 }
 
 /**
@@ -100,6 +100,7 @@ AI.prototype.move = function(){
 AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingDepth){
 
     var node = new DecisionNode();
+    var optionAvailable = false;
 
     var that = this;
 
@@ -111,26 +112,27 @@ AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingD
         if (result.u != halfGridUpper || result.l != halfGridLower){
             //node.decisions[option] = result;
             // node.merges[option] = result.merges;
-            //if (copy.over && !copy.won){
-            //TODO
-                //if this move results in ending the game, give a penalty!
             //    node.merges[option] = -1000;
-            //}else{
-                var avgMerges = that.getPossibilitiesNode(result.u, result.l, remainingDepth - 1);
-                //node.children[option] = possNode;
-                var merges;
-                if (avgMerges){
-                    merges = avgMerges + result.merges;
-                }else{
-                    merges = result.merges;
-                }
-                if (merges >= node.maxMerges){
-                    node.maxMerges = merges;
-                    node.maxOption = option;
-                }
+            var avgMerges = that.getPossibilitiesNode(result.u, result.l, remainingDepth - 1);
+            //node.children[option] = possNode;
+            var merges;
+            if (avgMerges){
+                merges = avgMerges + result.merges;
+            }else{
+                merges = result.merges;
+            }
+            if (merges >= node.maxMerges){
+                node.maxMerges = merges;
+                node.maxOption = option;
+            }
+            optionAvailable = true;
         }
-
     });
+
+    if (!optionAvailable){
+        //if this move results in ending the game, give a penalty!
+        node.maxMerges = -1000;
+    }
 
     return node;
 }
