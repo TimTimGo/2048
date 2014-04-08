@@ -9,5 +9,5 @@ function DecisionNode(){
     this.merges = {};
     this.decisions = {};
     this.children = {};
-    this.maxMerges = 0;
+    this.maxMerges = -10000000;
 }
