@@ -104,10 +104,7 @@ AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingD
     var that = this;
 
     actions.forEach(function(option){
-        //decode2(halfGridUpper, halfGridLower);
-        //console.log(option);
         var result = that.executeMove(option, halfGridUpper, halfGridLower);
-        //decode2(result.u, result.l);
 
         //Add move to possible actions only if
         //option created a move (which advances the game)
@@ -131,14 +128,6 @@ AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingD
                     node.maxMerges = merges;
                     node.maxOption = option;
                 }
-                if (remainingDepth == 3){
-                    console.log(option, merges);
-                }
-
-            //}
-        }
-        if (remainingDepth == 3){
-            console.log("---");
         }
 
     });
