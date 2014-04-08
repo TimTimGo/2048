@@ -13,11 +13,11 @@
  */
 
 // search depth
-var maxDepth = 3;
+var maxDepth = 4;
 // search depth upper bound
-var maxDHigh = 4;
+var maxDHigh = 5;
 // search depth lower bound
-var maxDLow = 3;
+var maxDLow = 4;
 
 var toLeft;
 
@@ -65,14 +65,16 @@ AI.prototype.step = function(){
     var state = this.encode(this.gameManager.grid);
 
     //adaptive search depth
-    /*var numFreeCells = state.grid.availableCells().length;
-    if (numFreeCells <= 2){
-        maxDepth = 5
+    var numFreeCells = this.freeCells(state[0], state[1]);
+    if (numFreeCells <= 5){
+        maxDepth = 8;
     }else if (numFreeCells <= 6){
-        maxDepth = maxDHigh;
+        maxDepth = 7;
+    }else if (numFreeCells <= 8){
+        maxDepth = 6;
     }else{
-        maxDepth = maxDLow;
-    }*/
+        maxDepth = 4;
+    }
 
     var decNode = this.getDecisionNode(state[0], state[1], 4);
     var choice = decNode.maxOption;
@@ -367,6 +369,17 @@ AI.prototype.executeMove = function(direction, upper, lower){
     }
 }
 
+AI.prototype.freeCells = function(upper, lower){
+    var mask = 0xf;
+    var count = 0;
+    for (var i = 0; i < 8; i++){
+        count += (upper & mask) == 0;
+        count += (lower & mask) == 0;
+        mask << 4;
+    }
+    return count;
+}
+
 
 function decode(state){
     var res = "";
@@ -382,3 +395,4 @@ function decode(state){
 function decode2(state1, state2){
     console.log("\n" + decode(state1) + decode(state2));
 }
+
