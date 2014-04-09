@@ -14,6 +14,8 @@
 
 var waitTime = 100;
 
+var maxDepth = 0;
+
 var actions = [0, 1, 2, 3]
 
 function AI(gameManager){
@@ -61,11 +63,11 @@ AI.prototype.faster = function(){
 AI.prototype.step = function(){
 
     var state = this.encode(this.gameManager.grid);
-    var maxDepth;
+
     //adaptive search depth
     var numFreeCells = this.freeCells(state[0], state[1]);
     if (numFreeCells <= 5){
-        maxDepth = 9;
+        maxDepth = 12;
     }else if (numFreeCells <= 6){
         maxDepth = 8;
     }else if (numFreeCells <= 8){
@@ -118,7 +120,7 @@ AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingD
             if (avgMerges){
                 merges += avgMerges;
             }else{
-                merges += 0.3 * that.gridScore(result.u, result.l);
+                merges += 0.005 * that.gridScore(result.u, result.l) * maxDepth;
             }
 
             if (merges >= node.maxMerges){
