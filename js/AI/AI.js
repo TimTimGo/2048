@@ -111,16 +111,13 @@ AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingD
         //Add move to possible actions only if
         //option created a move (which advances the game)
         if (result.u != halfGridUpper || result.l != halfGridLower){
-            //node.decisions[option] = result;
-            // node.merges[option] = result.merges;
-            //    node.merges[option] = -1000;
             var avgMerges = that.getPossibilitiesNode(result.u, result.l, remainingDepth - 1);
-            //node.children[option] = possNode;
             var merges = result.mergeScore;
             if (avgMerges){
                 merges += avgMerges;
             }else{
-                merges += 0.005 * that.gridScore(result.u, result.l) * maxDepth;
+                //merges += 0.005 * that.gridScore(result.u, result.l) * maxDepth;
+                //merges += 0.05 * that.freeCells(result.u, result.l) * maxDepth;
             }
 
             if (merges >= node.maxMerges){
@@ -232,7 +229,7 @@ AI.prototype.makeMoveTables = function(){
                 i--;
             }else if(cell[i] == cell[j]){
                 merges++;
-                mergeScore += Math.pow(cell[i], 1.2); //give a bonus for merging high value tiles
+                mergeScore += cell[i]; //give a bonus for merging high value tiles
                 cell[i] += 1;
                 cell[j] = 0;
             }
@@ -375,8 +372,12 @@ AI.prototype.freeCells = function(upper, lower){
     var mask = 0xf;
     var count = 0;
     for (var i = 0; i < 8; i++){
-        count += (upper & mask) == 0;
-        count += (lower & mask) == 0;
+        if ((upper & mask) == 0){
+            count++;
+        };
+        if ((lower & mask) == 0){
+            count++;
+        }
         mask << 4;
     }
     return count;
