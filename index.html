@@ -81,9 +81,26 @@
       <strong class="important">How to play:</strong> Use your <strong>arrow keys</strong> to move the tiles. When two tiles with the same number touch, they <strong>merge into one!</strong>
     </p>
     <hr>
-    <p>
-    <strong class="important">Note:</strong> This site is the official version of 2048. You can play it on your phone via <a href="http://git.io/2048">http://git.io/2048.</a> All other apps or sites are derivatives or fakes, and should be used with caution.
-    </p>
+      <form>
+          <h1>Tuning</h1>
+          <label for ="power">Power applied to weight of merges</label>
+          <input id = "power" type = "text" value = "1"/><br/>
+
+          <label for ="gradient">Weight for gradient</label>
+          <input id = "gradient" type = "text" value = "0.15"/><br/>
+
+          <label for ="corners">Weight for having heighest value in on corner</label>
+          <input id = "corners" type = "text" value = "1"/><br/>
+
+          <label for ="neighborhood">Weight for neighborhood</label>
+          <input id = "neighborhood" type = "text" value = "0"/><br/>
+
+          <label for ="emptyness">Weight for keeping field clear</label>
+          <input id = "emptyness" type = "text" value = "0"/><br/>
+
+          <input type = "button" class="apply-ai" id = "set" value = "Use values">
+
+      </form>
     <hr>
     <p>
     Created by <a href="http://gabrielecirulli.com" target="_blank">Gabriele Cirulli.</a> Based on <a href="https://itunes.apple.com/us/app/1024!/id823499224" target="_blank">1024 by Veewo Studio</a> and conceptually similar to <a href="http://asherv.com/threes/" target="_blank">Threes by Asher Vollmer.</a>

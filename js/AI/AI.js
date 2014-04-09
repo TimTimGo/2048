@@ -18,19 +18,35 @@ var maxDepth = 0;
 
 var actions = [0, 1, 2, 3]
 
+var params;
+
 function AI(gameManager){
 
     this.gameManager = gameManager;
     this.run = false;
+    this.updateParams = false;
 
     //connect to UI
     gameManager.inputManager.bindButtonPress(".step-ai", this.step.bind(this));
     gameManager.inputManager.bindButtonPress(".start-ai", this.start.bind(this));
     gameManager.inputManager.bindButtonPress(".stop-ai", this.stop.bind(this));
     gameManager.inputManager.bindButtonPress(".faster-ai", this.faster.bind(this));
+    gameManager.inputManager.bindButtonPress(".apply-ai",
+        function(){this.updateParams = true}.bind(this));
+
+    params = {
+        labels: ["power", "neighborhood", "emptyness", "gradient", "corners"],
+        values: {
+            power: 1,
+            neighborhood: 0,
+            emptyness: 0,
+            gradient: .15,
+            corners: 1
+        }
+    };
+
 
     this.makeMoveTables();
-    console.log(window.performance.now() - start);
 
 }
 
@@ -61,6 +77,11 @@ AI.prototype.faster = function(){
  * Plays one move
  */
 AI.prototype.step = function(){
+
+    if (this.updateParams){
+        this.applyTuneValues();
+        this.updateParams = false;
+    }
 
     var state = this.encode(this.gameManager.grid);
 
@@ -116,8 +137,15 @@ AI.prototype.getDecisionNode = function(halfGridUpper, halfGridLower, remainingD
             if (avgMerges){
                 merges += avgMerges;
             }else{
-                //merges += 0.005 * that.gridScore(result.u, result.l) * maxDepth;
-                //merges += 0.05 * that.freeCells(result.u, result.l) * maxDepth;
+                if (params.values.neighborhood != 0)
+                    merges += params.values.neighborhood * that.gridNeighborhoodScore(result.u, result.l) * maxDepth;
+                if (params.values.emptyness != 0)
+                    merges += params.values.emptyness * that.freeCells(result.u, result.l) * maxDepth;
+                if (params.values.gradient != 0)
+                    merges += params.values.gradient * that.gridGradientScore(result.u, result.l) * maxDepth;
+                if (params.values.corners != 0){
+                    merges += that.cornerBonus(result.u, result.l) * maxDepth;
+                }
             }
 
             if (merges >= node.maxMerges){
@@ -229,7 +257,7 @@ AI.prototype.makeMoveTables = function(){
                 i--;
             }else if(cell[i] == cell[j]){
                 merges++;
-                mergeScore += cell[i]; //give a bonus for merging high value tiles
+                mergeScore += Math.pow(cell[i], params.values.power); //give a bonus for merging high value tiles
                 cell[i] += 1;
                 cell[j] = 0;
             }
@@ -392,7 +420,7 @@ AI.prototype.freeCells = function(upper, lower){
  * @param lower
  * @returns {number}
  */
-AI.prototype.gridScore = function(upper, lower){
+AI.prototype.gridNeighborhoodScore = function(upper, lower){
     var score = 0;
     var u = upper;
     var l = lower;
@@ -456,6 +484,200 @@ AI.prototype.gridScore = function(upper, lower){
     }
 
     return score;
+}
+
+/**
+ * Computes a score that is high when continuity with respect to greater or smaller
+ * relationship is high.
+ * @param upper
+ * @param lower
+ * @returns {number}
+ */
+AI.prototype.gridGradientScore = function(upper, lower){
+    var scoreLR = 0;
+    var scoreUD = 0;
+    var cornerBonus = 0;
+    var u = upper;
+    var l = lower;
+
+    for (var i = 0; i < 4; i++){
+
+        //first row
+        var uf = u & 0xf;
+        var us = u >>> 4 & 0xf;
+
+        //second row
+        var usf = u >>> 16 & 0xf;
+        var uss = u >>> 20 & 0xf;
+
+        //third row
+        var lf = l & 0xf;
+        var ls = l >>> 4 & 0xf;
+
+        //fourth row
+        var lsf = l >>> 16 & 0xf;
+        var lss = l >>> 20 & 0xf;
+
+        //compare to right neighbor in first row
+        if(uf > us && us != 0){
+            scoreLR++;
+        };
+
+        //compare to right neighbor in second row
+        if (usf > uss && uss != 0){
+            scoreLR++;
+        };
+
+        //compare to right neighbor in third row
+        if (lf > ls && ls != 0){
+            scoreLR++;
+        };
+
+        //compare to right neighbor in fourth row
+        if (lsf > lss && lss != 0){
+            scoreLR++;
+        };
+
+        //compare to lower neighbor first row
+        if (uf > usf && usf != 0){
+            scoreUD++;
+        };
+
+        //compare to lower neighbor second row
+        if (usf > lf && lf != 0){
+            scoreUD++;
+        };
+
+        //compare to lower neighbor third row
+        if (lf > lsf && lsf != 0){
+            scoreUD++;
+        };
+
+
+
+        //compare to right neighbor in first row
+        if(uf < us && uf != 0){
+            scoreLR--;
+        };
+
+        //compare to right neighbor in second row
+        if (usf < uss && usf != 0){
+            scoreLR--;
+        };
+
+        //compare to right neighbor in third row
+        if (lf < ls && lf != 0){
+            scoreLR--;
+        };
+
+        //compare to right neighbor in fourth row
+        if (lsf < lss && lsf != 0){
+            scoreLR--;
+        };
+
+        //compare to lower neighbor first row
+        if (uf < usf && uf != 0){
+            scoreUD--;
+        };
+
+        //compare to lower neighbor second row
+        if (usf < lf && usf != 0){
+            scoreUD--;
+        };
+
+        //compare to lower neighbor third row
+        if (lf < lsf && lf != 0){
+            scoreUD--;
+        };
+
+
+        u = u >>> 4;
+        l = l >>> 4;
+
+    }
+
+    //compare to lower neighbor first row, last column
+    if (uf > usf && usf != 0){
+        scoreUD++;
+    };
+
+    //compare to lower neighbor second row, last column
+    if (usf > lf && lf != 0){
+        scoreUD++;
+    };
+
+    //compare to lower neighbor third row, last column
+    if (lf > lsf && lsf != 0){
+        scoreUD++;
+    };
+
+    //compare to lower neighbor first row, last column
+    if (uf < usf && uf != 0){
+        scoreUD--;
+    };
+
+    //compare to lower neighbor second row, last column
+    if (usf < lf && usf != 0){
+        scoreUD--;
+    };
+
+    //compare to lower neighbor third row, last column
+    if (lf < lsf && lf != 0){
+        scoreUD--;
+    };
+
+    //instead of calling Math.abs
+    return ((scoreLR + (scoreLR >> 31)) ^ (scoreLR >> 31))
+            + (scoreUD + (scoreUD >> 31)) ^ (scoreUD >> 31);
+}
+
+AI.prototype.cornerBonus = function(upper, lower){
+
+    var max = 0;
+    var maxPos = -1;
+
+    for (var i = 0; i < 8; i++){
+        var c = (upper & 0xf);
+        if (max < c){
+            max = c;
+            maxPos = i;
+        }
+        c = (lower & 0xf);
+        if (max < c){
+            max = c;
+            maxPos = i + 8;
+        }
+        upper = upper >>> 4;
+        lower = lower >>> 4;
+    }
+
+    if (maxPos == 0 || maxPos == 3 ||
+        maxPos == 12 || maxPos == 15){
+        return 1;
+    }else{
+        return 0;
+    }
+
+}
+
+/**
+ * Read parameter inputs from UI and apply it to params variable.
+ * @returns {boolean}
+ */
+AI.prototype.applyTuneValues = function(){
+    var newValues = {};
+
+    for (var l in params.labels){
+        var label = params.labels[l];
+        newValues[label] = parseFloat(document.getElementById(label).value);
+        if (newValues[label] == NaN){
+            return false;
+        }
+    }
+    params.values = newValues;
+
+    this.makeMoveTables();
+
 }
 
 
