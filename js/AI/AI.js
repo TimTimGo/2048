@@ -35,13 +35,14 @@ function AI(gameManager){
         function(){this.updateParams = true}.bind(this));
 
     params = {
-        labels: ["power", "neighborhood", "emptyness", "gradient", "corners"],
+        labels: ["power", "neighborhood", "emptyness", "gradient", "corners", "alternator"],
         values: {
             power: 1,
             neighborhood: 0,
             emptyness: 0,
-            gradient: .15,
-            corners: 1
+            gradient: 0,
+            alternator: 0,
+            corners: 0
         }
     };
 
@@ -499,6 +500,8 @@ AI.prototype.gridGradientScore = function(upper, lower){
     var cornerBonus = 0;
     var u = upper;
     var l = lower;
+    var even = 1;
+    var alternator = params.values.alternator;
 
     for (var i = 0; i < 4; i++){
 
@@ -525,7 +528,7 @@ AI.prototype.gridGradientScore = function(upper, lower){
 
         //compare to right neighbor in second row
         if (usf > uss && uss != 0){
-            scoreLR++;
+            scoreLR--;
         };
 
         //compare to right neighbor in third row
@@ -535,22 +538,23 @@ AI.prototype.gridGradientScore = function(upper, lower){
 
         //compare to right neighbor in fourth row
         if (lsf > lss && lss != 0){
-            scoreLR++;
+            scoreLR--;
         };
+
 
         //compare to lower neighbor first row
         if (uf > usf && usf != 0){
-            scoreUD++;
+            scoreUD += even;
         };
 
         //compare to lower neighbor second row
         if (usf > lf && lf != 0){
-            scoreUD++;
+            scoreUD += even;
         };
 
         //compare to lower neighbor third row
         if (lf > lsf && lsf != 0){
-            scoreUD++;
+            scoreUD += even;
         };
 
 
@@ -562,7 +566,7 @@ AI.prototype.gridGradientScore = function(upper, lower){
 
         //compare to right neighbor in second row
         if (usf < uss && usf != 0){
-            scoreLR--;
+            scoreLR++;
         };
 
         //compare to right neighbor in third row
@@ -572,58 +576,59 @@ AI.prototype.gridGradientScore = function(upper, lower){
 
         //compare to right neighbor in fourth row
         if (lsf < lss && lsf != 0){
-            scoreLR--;
+            scoreLR++;
         };
+
 
         //compare to lower neighbor first row
         if (uf < usf && uf != 0){
-            scoreUD--;
+            scoreUD -= even;
         };
 
         //compare to lower neighbor second row
         if (usf < lf && usf != 0){
-            scoreUD--;
+            scoreUD -= even;
         };
 
         //compare to lower neighbor third row
         if (lf < lsf && lf != 0){
-            scoreUD--;
+            scoreUD -= even;
         };
 
 
         u = u >>> 4;
         l = l >>> 4;
-
+        even = even * alternator;
     }
 
     //compare to lower neighbor first row, last column
     if (uf > usf && usf != 0){
-        scoreUD++;
+        scoreUD += 1;
     };
 
     //compare to lower neighbor second row, last column
     if (usf > lf && lf != 0){
-        scoreUD++;
+        scoreUD += 1;
     };
 
     //compare to lower neighbor third row, last column
     if (lf > lsf && lsf != 0){
-        scoreUD++;
+        scoreUD += 1;
     };
 
     //compare to lower neighbor first row, last column
     if (uf < usf && uf != 0){
-        scoreUD--;
+        scoreUD -= 1;
     };
 
     //compare to lower neighbor second row, last column
     if (usf < lf && usf != 0){
-        scoreUD--;
+        scoreUD -= 1;
     };
 
     //compare to lower neighbor third row, last column
     if (lf < lsf && lf != 0){
-        scoreUD--;
+        scoreUD -= 1;
     };
 
     //instead of calling Math.abs
