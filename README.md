@@ -2,7 +2,7 @@
 
 Tired of reaching 1024 - but no further? Use your computers brain and join our exclusive club :D <br/><br/>
 
-<p>Play at http://timtimgo.github.io/2048/</p>
+<p>Play at http://timokersten.github.io/2048/</p>
 
 
 <p align="center">
